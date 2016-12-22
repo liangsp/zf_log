@@ -995,82 +995,70 @@ void _zf_log_write_mem_aux(
 	va_end(va);
 }
 
-#define _ZF_LOG_PASTE_2(a, b) a ## b
-#define _ZF_LOG_CONCAT_2(a, b) _ZF_LOG_PASTE_2(a, b)
+#define _PP_PASTE_2(a, b) a ## b
+#define _PP_CONCAT_2(a, b) _PP_PASTE_2(a, b)
 
-#define _ZF_LOG_NARGS_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,...) _24
-#define _ZF_LOG_NARGS(...) _ZF_LOG_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
+/* Microsoft C preprocessor is a piece of shit. This moron treats __VA_ARGS__
+ * as a single token and requires additional expansion to realize that it's
+ * actually a list. If not for it, there would be no need in this extra
+ * expansion.
+ */
+#define _PP_EXPAND(x) x
+#define _PP_NARGS_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,...) _24
+#define _PP_NARGS(...) _PP_EXPAND(_PP_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
 
-/*
-#define _ZF_LOG_REVERSE_1(a) a
-#define _ZF_LOG_REVERSE_2(a, ...) _ZF_LOG_REVERSE_1(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_3(a, ...) _ZF_LOG_REVERSE_2(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_4(a, ...) _ZF_LOG_REVERSE_3(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_5(a, ...) _ZF_LOG_REVERSE_4(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_6(a, ...) _ZF_LOG_REVERSE_5(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_7(a, ...) _ZF_LOG_REVERSE_6(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_8(a, ...) _ZF_LOG_REVERSE_7(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_9(a, ...) _ZF_LOG_REVERSE_8(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_10(a, ...) _ZF_LOG_REVERSE_9(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_11(a, ...) _ZF_LOG_REVERSE_10(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_12(a, ...) _ZF_LOG_REVERSE_11(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_13(a, ...) _ZF_LOG_REVERSE_12(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_14(a, ...) _ZF_LOG_REVERSE_13(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_15(a, ...) _ZF_LOG_REVERSE_14(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_16(a, ...) _ZF_LOG_REVERSE_15(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_17(a, ...) _ZF_LOG_REVERSE_16(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_18(a, ...) _ZF_LOG_REVERSE_17(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_19(a, ...) _ZF_LOG_REVERSE_18(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_20(a, ...) _ZF_LOG_REVERSE_19(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_21(a, ...) _ZF_LOG_REVERSE_20(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_22(a, ...) _ZF_LOG_REVERSE_21(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_23(a, ...) _ZF_LOG_REVERSE_22(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE_24(a, ...) _ZF_LOG_REVERSE_23(__VA_ARGS__) a
-#define _ZF_LOG_REVERSE(...) _ZF_LOG_CONCAT_2(_ZF_LOG_REVERSE_, _ZF_LOG_NARGS(__VA_ARGS__)) (__VA_ARGS__)
-#define _ZF_LOG_REVERSE_TUPLE(what) _ZF_LOG_REVERSE what
-*/
+/* There is a more efficient way to implement this, but it requires
+ * working C preprocessor. Unfortunately, Microsoft Visual Studio doesn't
+ * have one.
+ */
+#define _PP_HEAD__(x, ...) x
+#define _PP_HEAD_(...) _PP_EXPAND(_PP_HEAD__(__VA_ARGS__, ~))
+#define _PP_HEAD(xs) _PP_HEAD_ xs
+#define _PP_TAIL_(x, ...) (__VA_ARGS__)
+#define _PP_TAIL(xs) _PP_TAIL_ xs
 
-#define _ZF_LOG_FOLD_1(f, a, v) f(a, v)
-#define _ZF_LOG_FOLD_2(f, a, v, ...) _ZF_LOG_FOLD_1(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_3(f, a, v, ...) _ZF_LOG_FOLD_2(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_4(f, a, v, ...) _ZF_LOG_FOLD_3(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_5(f, a, v, ...) _ZF_LOG_FOLD_4(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_6(f, a, v, ...) _ZF_LOG_FOLD_5(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_7(f, a, v, ...) _ZF_LOG_FOLD_6(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_8(f, a, v, ...) _ZF_LOG_FOLD_7(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_9(f, a, v, ...) _ZF_LOG_FOLD_8(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_10(f, a, v, ...) _ZF_LOG_FOLD_9(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_11(f, a, v, ...) _ZF_LOG_FOLD_10(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_12(f, a, v, ...) _ZF_LOG_FOLD_11(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_13(f, a, v, ...) _ZF_LOG_FOLD_12(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_14(f, a, v, ...) _ZF_LOG_FOLD_13(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_15(f, a, v, ...) _ZF_LOG_FOLD_14(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_16(f, a, v, ...) _ZF_LOG_FOLD_15(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_17(f, a, v, ...) _ZF_LOG_FOLD_16(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_18(f, a, v, ...) _ZF_LOG_FOLD_17(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_19(f, a, v, ...) _ZF_LOG_FOLD_18(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_20(f, a, v, ...) _ZF_LOG_FOLD_19(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_21(f, a, v, ...) _ZF_LOG_FOLD_20(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_22(f, a, v, ...) _ZF_LOG_FOLD_21(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_23(f, a, v, ...) _ZF_LOG_FOLD_22(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD_24(f, a, v, ...) _ZF_LOG_FOLD_23(f, f(a, v), __VA_ARGS__)
-#define _ZF_LOG_FOLD(f, a, ...) _ZF_LOG_CONCAT_2(_ZF_LOG_FOLD_, _ZF_LOG_NARGS(__VA_ARGS__)) (f, a, __VA_ARGS__)
+#define _PP_FOLD_1(f, a, xs) f(a, _PP_HEAD(xs))
+#define _PP_FOLD_2(f, a, xs) _PP_FOLD_1(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_3(f, a, xs) _PP_FOLD_2(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_4(f, a, xs) _PP_FOLD_3(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_5(f, a, xs) _PP_FOLD_4(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_6(f, a, xs) _PP_FOLD_5(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_7(f, a, xs) _PP_FOLD_6(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_8(f, a, xs) _PP_FOLD_7(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_9(f, a, xs) _PP_FOLD_8(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_10(f, a, xs) _PP_FOLD_9(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_11(f, a, xs) _PP_FOLD_10(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_12(f, a, xs) _PP_FOLD_11(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_13(f, a, xs) _PP_FOLD_12(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_14(f, a, xs) _PP_FOLD_13(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_15(f, a, xs) _PP_FOLD_14(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_16(f, a, xs) _PP_FOLD_15(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_17(f, a, xs) _PP_FOLD_16(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_18(f, a, xs) _PP_FOLD_17(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_19(f, a, xs) _PP_FOLD_18(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_20(f, a, xs) _PP_FOLD_19(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_21(f, a, xs) _PP_FOLD_20(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_22(f, a, xs) _PP_FOLD_21(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_23(f, a, xs) _PP_FOLD_22(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD_24(f, a, xs) _PP_FOLD_23(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
+#define _PP_FOLD(f, a, xs) _PP_CONCAT_2(_PP_FOLD_, _PP_NARGS xs) (f, a, xs)
 
-#define REVERSE_JOIN(a, v) v a
-#define JOIN(a, v) a v
+#define _PP_JOIN_REVERSE(a, v) v a
+#define _PP_JOIN(a, v) a v
 
-#define _PP_ASIS(what) what
-#define _PP_NOOP(what)
-#define _PP_COMMA_AFTER(what) what,
+#define _PP_ID(x) x
 
-#define ZF_TEST(_, T, A, B, C) \
-    _(A) _(T(+)) _(B) _(T(-)) _(C) _(T(==))
+#define STATIC_ASSERT(name, cond) \
+    typedef char assert_##name[(cond)? 1: -1]
+
+#define ZF_TEST(T, A, B, C) \
+    (A, T(+), B, T(-), C, T(==))
 
 #define ONE 1
 #define TWO 2
 #define THREE 3
 
-STATIC_ASSERT(lets_check_it_here, 2 _ZF_LOG_FOLD(REVERSE_JOIN,,ZF_TEST(_PP_COMMA_AFTER, _PP_ASIS, ONE, TWO, THREE)));
+STATIC_ASSERT(lets_check_it, 2 _PP_FOLD(_PP_JOIN_REVERSE,,ZF_TEST(_PP_ID, ONE, TWO, THREE)));
 
 //#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, MILLISECOND, PID, TID, LEVEL) \
 //    _(MONTH) _(T("-")) _(DAY) _(T(" ")) _(HOUR) _(T(":")) _(MINUTE) _(T(":")) _(SECOND) _(T(".")) _(MILLISECOND) _(T(" ")) _(PID) _(T(" ")) _(LEVEL) _(T(" "))
@@ -1079,18 +1067,17 @@ STATIC_ASSERT(lets_check_it_here, 2 _ZF_LOG_FOLD(REVERSE_JOIN,,ZF_TEST(_PP_COMMA
 //    _(T("|")) _(YEAR) _(T("-")) _(MONTH) _(T("-")) _(DAY) _(T("|"))
 
 #define ZF_LOG_CONTEXT_FORMAT(T, YEAR, MONTH, DAY) \
-    T("|"), YEAR, T("-"), MONTH, T("-"), DAY, T("|")
+    (T("|"), YEAR, T("-"), MONTH, T("-"), DAY, T("|"))
 
 #define HAS_MONTH (0 ZF_LOG_CONTEXT_FORMAT(AS_IS, NOOP,,||1,,,,,,,,))
 
-
 #ifdef ZF_LOG_LIBRARY_PREFIX
-	#define foo_but_not_foo _ZF_LOG_DECOR(foo_but_not_foo)
+    #define foo_but_not_foo _ZF_LOG_DECOR(foo_but_not_foo)
 #endif
 void foo_but_not_foo()
 {
     fprintf(stderr,
-            _ZF_LOG_FOLD(JOIN,,ZF_LOG_CONTEXT_FORMAT(_PP_ASIS, "%u", "%s", "%i")),
+            _PP_FOLD(_PP_JOIN,,ZF_LOG_CONTEXT_FORMAT(_PP_ID, "%u", "%s", "%i")),
             2016, "December", 21);
 
     char *p = 0; (void)p;
@@ -1098,10 +1085,5 @@ void foo_but_not_foo()
 #define _PUT_YEAR p+=2016;
 #define _PUT_MONTH p+=sizeof("December");
 #define _PUT_DAY p+=21;
-    _ZF_LOG_FOLD(REVERSE_JOIN,,ZF_LOG_CONTEXT_FORMAT(_PUT_STR, _PUT_YEAR, _PUT_MONTH, _PUT_DAY))
-	static int a = 0;
-	if (!a) {
-		++a;
-	foo_but_not_foo();
-	}
+    _PP_FOLD(_PP_JOIN_REVERSE,,ZF_LOG_CONTEXT_FORMAT(_PUT_STR, _PUT_YEAR, _PUT_MONTH, _PUT_DAY))
 }
