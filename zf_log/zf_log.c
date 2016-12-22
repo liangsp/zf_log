@@ -995,41 +995,113 @@ void _zf_log_write_mem_aux(
 	va_end(va);
 }
 
-#define AS_IS(what) what
-#define NOOP(what)
+#define _ZF_LOG_PASTE_2(a, b) a ## b
+#define _ZF_LOG_CONCAT_2(a, b) _ZF_LOG_PASTE_2(a, b)
 
-#define NARGS_(_0,_1,_2,_3,_4,_5,_6,_7,_8,...) _8
-#define NARGS(...) NARGS_(__VA_ARGS__,8,7,6,5,4,3,2,1)
+#define _ZF_LOG_NARGS_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,...) _24
+#define _ZF_LOG_NARGS(...) _ZF_LOG_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
 
-#define EMPTY()
-#define DEFER(id) id EMPTY()
-#define OBSTRUCT(...) __VA_ARGS__ DEFER(EMPTY)()
+/*
+#define _ZF_LOG_REVERSE_1(a) a
+#define _ZF_LOG_REVERSE_2(a, ...) _ZF_LOG_REVERSE_1(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_3(a, ...) _ZF_LOG_REVERSE_2(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_4(a, ...) _ZF_LOG_REVERSE_3(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_5(a, ...) _ZF_LOG_REVERSE_4(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_6(a, ...) _ZF_LOG_REVERSE_5(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_7(a, ...) _ZF_LOG_REVERSE_6(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_8(a, ...) _ZF_LOG_REVERSE_7(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_9(a, ...) _ZF_LOG_REVERSE_8(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_10(a, ...) _ZF_LOG_REVERSE_9(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_11(a, ...) _ZF_LOG_REVERSE_10(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_12(a, ...) _ZF_LOG_REVERSE_11(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_13(a, ...) _ZF_LOG_REVERSE_12(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_14(a, ...) _ZF_LOG_REVERSE_13(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_15(a, ...) _ZF_LOG_REVERSE_14(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_16(a, ...) _ZF_LOG_REVERSE_15(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_17(a, ...) _ZF_LOG_REVERSE_16(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_18(a, ...) _ZF_LOG_REVERSE_17(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_19(a, ...) _ZF_LOG_REVERSE_18(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_20(a, ...) _ZF_LOG_REVERSE_19(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_21(a, ...) _ZF_LOG_REVERSE_20(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_22(a, ...) _ZF_LOG_REVERSE_21(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_23(a, ...) _ZF_LOG_REVERSE_22(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE_24(a, ...) _ZF_LOG_REVERSE_23(__VA_ARGS__) a
+#define _ZF_LOG_REVERSE(...) _ZF_LOG_CONCAT_2(_ZF_LOG_REVERSE_, _ZF_LOG_NARGS(__VA_ARGS__)) (__VA_ARGS__)
+#define _ZF_LOG_REVERSE_TUPLE(what) _ZF_LOG_REVERSE what
+*/
 
-#define REPEAT() 1, OBSTRUCT(REPEAT_INDIRECT) ()
-#define REPEAT_INDIRECT() REPEAT
+#define _ZF_LOG_FOLD_1(f, a, v) f(a, v)
+#define _ZF_LOG_FOLD_2(f, a, v, ...) _ZF_LOG_FOLD_1(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_3(f, a, v, ...) _ZF_LOG_FOLD_2(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_4(f, a, v, ...) _ZF_LOG_FOLD_3(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_5(f, a, v, ...) _ZF_LOG_FOLD_4(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_6(f, a, v, ...) _ZF_LOG_FOLD_5(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_7(f, a, v, ...) _ZF_LOG_FOLD_6(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_8(f, a, v, ...) _ZF_LOG_FOLD_7(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_9(f, a, v, ...) _ZF_LOG_FOLD_8(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_10(f, a, v, ...) _ZF_LOG_FOLD_9(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_11(f, a, v, ...) _ZF_LOG_FOLD_10(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_12(f, a, v, ...) _ZF_LOG_FOLD_11(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_13(f, a, v, ...) _ZF_LOG_FOLD_12(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_14(f, a, v, ...) _ZF_LOG_FOLD_13(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_15(f, a, v, ...) _ZF_LOG_FOLD_14(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_16(f, a, v, ...) _ZF_LOG_FOLD_15(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_17(f, a, v, ...) _ZF_LOG_FOLD_16(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_18(f, a, v, ...) _ZF_LOG_FOLD_17(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_19(f, a, v, ...) _ZF_LOG_FOLD_18(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_20(f, a, v, ...) _ZF_LOG_FOLD_19(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_21(f, a, v, ...) _ZF_LOG_FOLD_20(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_22(f, a, v, ...) _ZF_LOG_FOLD_21(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_23(f, a, v, ...) _ZF_LOG_FOLD_22(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD_24(f, a, v, ...) _ZF_LOG_FOLD_23(f, f(a, v), __VA_ARGS__)
+#define _ZF_LOG_FOLD(f, a, ...) _ZF_LOG_CONCAT_2(_ZF_LOG_FOLD_, _ZF_LOG_NARGS(__VA_ARGS__)) (f, a, __VA_ARGS__)
 
-#define _1CONCAT(a, b) a ## b
-#define _CONCAT(a, b) _1CONCAT(a,b)
+#define REVERSE_JOIN(a, v) v a
+#define JOIN(a, v) a v
 
-#define REVERSE_1(_1) _1
-#define REVERSE_2(_1, ...) REVERSE_1(__VA_ARGS__) _1
-#define REVERSE_3(_1, ...) REVERSE_2(__VA_ARGS__) _1
-#define REVERSE_4(_1, ...) REVERSE_3(__VA_ARGS__) _1
-#define REVERSE_5(_1, ...) REVERSE_4(__VA_ARGS__) _1
-#define REVERSE_6(_1, ...) REVERSE_5(__VA_ARGS__) _1
-#define REVERSE_7(_1, ...) REVERSE_6(__VA_ARGS__) _1
-#define REVERSE_8(_1, ...) REVERSE_7(__VA_ARGS__) _1
-#define REVERSE(...) _CONCAT(REVERSE_, NARGS(__VA_ARGS__)) (__VA_ARGS__)
+#define _PP_ASIS(what) what
+#define _PP_NOOP(what)
+#define _PP_COMMA_AFTER(what) what,
 
 #define ZF_TEST(_, T, A, B, C) \
-	    _(A) _(T(+)) _(B) _(T(-)) _(C) _(T(==)) 
-
-#define COMA_AFTER(a) a,
-
-#define REVERSE_IT(what) REVERSE (what)
+    _(A) _(T(+)) _(B) _(T(-)) _(C) _(T(==))
 
 #define ONE 1
 #define TWO 2
 #define THREE 3
 
-STATIC_ASSERT(lets_check_it, 2 REVERSE_IT(ZF_TEST(COMA_AFTER, AS_IS, ONE, TWO, THREE)));
+STATIC_ASSERT(lets_check_it_here, 2 _ZF_LOG_FOLD(REVERSE_JOIN,,ZF_TEST(_PP_COMMA_AFTER, _PP_ASIS, ONE, TWO, THREE)));
+
+//#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, MILLISECOND, PID, TID, LEVEL) \
+//    _(MONTH) _(T("-")) _(DAY) _(T(" ")) _(HOUR) _(T(":")) _(MINUTE) _(T(":")) _(SECOND) _(T(".")) _(MILLISECOND) _(T(" ")) _(PID) _(T(" ")) _(LEVEL) _(T(" "))
+
+//#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY) \
+//    _(T("|")) _(YEAR) _(T("-")) _(MONTH) _(T("-")) _(DAY) _(T("|"))
+
+#define ZF_LOG_CONTEXT_FORMAT(T, YEAR, MONTH, DAY) \
+    T("|"), YEAR, T("-"), MONTH, T("-"), DAY, T("|")
+
+#define HAS_MONTH (0 ZF_LOG_CONTEXT_FORMAT(AS_IS, NOOP,,||1,,,,,,,,))
+
+
+#ifdef ZF_LOG_LIBRARY_PREFIX
+	#define foo_but_not_foo _ZF_LOG_DECOR(foo_but_not_foo)
+#endif
+void foo_but_not_foo()
+{
+    fprintf(stderr,
+            _ZF_LOG_FOLD(JOIN,,ZF_LOG_CONTEXT_FORMAT(_PP_ASIS, "%u", "%s", "%i")),
+            2016, "December", 21);
+
+    char *p = 0; (void)p;
+#define _PUT_STR(s) *p++ = (s)[0];
+#define _PUT_YEAR p+=2016;
+#define _PUT_MONTH p+=sizeof("December");
+#define _PUT_DAY p+=21;
+    _ZF_LOG_FOLD(REVERSE_JOIN,,ZF_LOG_CONTEXT_FORMAT(_PUT_STR, _PUT_YEAR, _PUT_MONTH, _PUT_DAY))
+	static int a = 0;
+	if (!a) {
+		++a;
+	foo_but_not_foo();
+	}
+}
