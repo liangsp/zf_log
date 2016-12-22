@@ -994,3 +994,42 @@ void _zf_log_write_mem_aux(
 	_zf_log_write_imp(log, 0, &mem, lvl, tag, fmt, va);
 	va_end(va);
 }
+
+#define AS_IS(what) what
+#define NOOP(what)
+
+#define NARGS_(_0,_1,_2,_3,_4,_5,_6,_7,_8,...) _8
+#define NARGS(...) NARGS_(__VA_ARGS__,8,7,6,5,4,3,2,1)
+
+#define EMPTY()
+#define DEFER(id) id EMPTY()
+#define OBSTRUCT(...) __VA_ARGS__ DEFER(EMPTY)()
+
+#define REPEAT() 1, OBSTRUCT(REPEAT_INDIRECT) ()
+#define REPEAT_INDIRECT() REPEAT
+
+#define _1CONCAT(a, b) a ## b
+#define _CONCAT(a, b) _1CONCAT(a,b)
+
+#define REVERSE_1(_1) _1
+#define REVERSE_2(_1, ...) REVERSE_1(__VA_ARGS__) _1
+#define REVERSE_3(_1, ...) REVERSE_2(__VA_ARGS__) _1
+#define REVERSE_4(_1, ...) REVERSE_3(__VA_ARGS__) _1
+#define REVERSE_5(_1, ...) REVERSE_4(__VA_ARGS__) _1
+#define REVERSE_6(_1, ...) REVERSE_5(__VA_ARGS__) _1
+#define REVERSE_7(_1, ...) REVERSE_6(__VA_ARGS__) _1
+#define REVERSE_8(_1, ...) REVERSE_7(__VA_ARGS__) _1
+#define REVERSE(...) _CONCAT(REVERSE_, NARGS(__VA_ARGS__)) (__VA_ARGS__)
+
+#define ZF_TEST(_, T, A, B, C) \
+	    _(A) _(T("+")) _(B) _(T("-")) _(C) _(T("="))
+
+#define COMA_AFTER(a) a,
+
+#define REVERSE_IT(what) REVERSE (what)
+
+#define ONE 1
+#define TWO 1
+#define THREE 1
+
+REVERSE_IT(ZF_TEST(COMA_AFTER, AS_IS, ONE, TWO, THREE))
