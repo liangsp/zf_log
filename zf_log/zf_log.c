@@ -1022,14 +1022,14 @@ void _zf_log_write_mem_aux(
 #define REVERSE(...) _CONCAT(REVERSE_, NARGS(__VA_ARGS__)) (__VA_ARGS__)
 
 #define ZF_TEST(_, T, A, B, C) \
-	    _(A) _(T("+")) _(B) _(T("-")) _(C) _(T("="))
+	    _(A) _(T(+)) _(B) _(T(-)) _(C) _(T(==)) 
 
 #define COMA_AFTER(a) a,
 
 #define REVERSE_IT(what) REVERSE (what)
 
 #define ONE 1
-#define TWO 1
-#define THREE 1
+#define TWO 2
+#define THREE 3
 
-REVERSE_IT(ZF_TEST(COMA_AFTER, AS_IS, ONE, TWO, THREE))
+STATIC_ASSERT(lets_check_it, 2 REVERSE_IT(ZF_TEST(COMA_AFTER, AS_IS, ONE, TWO, THREE)));
