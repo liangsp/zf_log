@@ -1048,9 +1048,6 @@ void _zf_log_write_mem_aux(
 
 #define _PP_ID(x) x
 
-#define STATIC_ASSERT(name, cond) \
-    typedef char assert_##name[(cond)? 1: -1]
-
 #define ZF_TEST(T, A, B, C) \
     (A, T(+), B, T(-), C, T(==))
 
@@ -1060,11 +1057,13 @@ void _zf_log_write_mem_aux(
 
 STATIC_ASSERT(lets_check_it, 2 _PP_FOLD(_PP_JOIN_REVERSE,,ZF_TEST(_PP_ID, ONE, TWO, THREE)));
 
-//#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, MILLISECOND, PID, TID, LEVEL) \
-//    _(MONTH) _(T("-")) _(DAY) _(T(" ")) _(HOUR) _(T(":")) _(MINUTE) _(T(":")) _(SECOND) _(T(".")) _(MILLISECOND) _(T(" ")) _(PID) _(T(" ")) _(LEVEL) _(T(" "))
+/*
+#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, MILLISECOND, PID, TID, LEVEL) \
+    _(MONTH) _(T("-")) _(DAY) _(T(" ")) _(HOUR) _(T(":")) _(MINUTE) _(T(":")) _(SECOND) _(T(".")) _(MILLISECOND) _(T(" ")) _(PID) _(T(" ")) _(LEVEL) _(T(" "))
 
-//#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY) \
-//    _(T("|")) _(YEAR) _(T("-")) _(MONTH) _(T("-")) _(DAY) _(T("|"))
+#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY) \
+    _(T("|")) _(YEAR) _(T("-")) _(MONTH) _(T("-")) _(DAY) _(T("|"))
+*/
 
 #define ZF_LOG_CONTEXT_FORMAT(T, YEAR, MONTH, DAY) \
     (T("|"), YEAR, T("-"), MONTH, T("-"), DAY, T("|"))
