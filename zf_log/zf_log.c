@@ -132,17 +132,15 @@
 #ifndef ZF_LOG_EOL
 	#define ZF_LOG_EOL "\n"
 #endif
-/* String to put between parts of log line (tag, source, message).
- * If ZF_LOG_OPTIMIZE_SIZE is defined, can NOT contain
- * following characters: '%', '\0'.
+/* Default delimiter that separates parts of log message.
+ * If ZF_LOG_OPTIMIZE_SIZE is defined, can NOT contain '%' or '\0'.
+ *
+ * Log message format specifications can override (or ignore) this value. For
+ * more details see ZF_LOG_MESSAGE_CTX_FORMAT, ZF_LOG_MESSAGE_SRC_FORMAT and
+ * ZF_LOG_MESSAGE_TAG_FORMAT.
  */
-#ifndef ZF_LOG_SEPARATOR_DEFAULT
-	#define ZF_LOG_SEPARATOR_DEFAULT " "
-#endif
-/* String that separates tag and following part.
- */
-#ifndef ZF_LOG_SEPARATOR_TAG
-	#define ZF_LOG_SEPARATOR_TAG ZF_LOG_SEPARATOR_DEFAULT
+#ifndef ZF_LOG_DEF_DELIMITER
+	#define ZF_LOG_DEF_DELIMITER " "
 #endif
 /* Specifies log message context format. Log message context includes date,
  * time, process id, thread id and message's log level. Custom fields can
@@ -163,25 +161,30 @@
  * If message context must be visually separated from the rest of the message,
  * it must be reflected in context format (notice trailing S(" > ") in the
  * example above).
+ *
+ * Custom function value example:
+ *
+ *   #define ZF_LOG_MESSAGE_CTX_FORMAT (F_UINT(5, tickcount()))
  */
 #ifndef ZF_LOG_MESSAGE_CTX_FORMAT
 	#define ZF_LOG_MESSAGE_CTX_FORMAT \
-		(MONTH, S("-"), DAY, S(" "), \
-		 HOUR, S(":"), MINUTE, S(":"), SECOND, S("."), MILLISECOND, S(" "), \
-		 PID, S(" "), TID, S(" "), LEVEL, S(" "))
+		(MONTH, S("-"), DAY, S(ZF_LOG_DEF_DELIMITER), \
+		 HOUR, S(":"), MINUTE, S(":"), SECOND, S("."), MILLISECOND, S(ZF_LOG_DEF_DELIMITER), \
+		 PID, S(ZF_LOG_DEF_DELIMITER), TID, S(ZF_LOG_DEF_DELIMITER), \
+		 LEVEL, S(ZF_LOG_DEF_DELIMITER))
 #endif
-/*
+/* Specifies log message source location format.
  */
 #ifndef ZF_LOG_MESSAGE_SRC_FORMAT
 	#define ZF_LOG_MESSAGE_SRC_FORMAT \
-		(FUNCTION, S("@"), FILENAME, S(":"), FILELINE, S(" "))
+		(FUNCTION, S("@"), FILENAME, S(":"), FILELINE, S(ZF_LOG_DEF_DELIMITER))
 #endif
 /* Example:
- *   #define ZF_LOG_TAG_FORMAT (S("["), TAG(".", ""), S("]"))
+ *   #define ZF_LOG_TAG_FORMAT (S("["), TAG(".", ""), S("] "))
  */
-#ifndef ZF_LOG_TAG_FORMAT
-	#define ZF_LOG_TAG_FORMAT \
-		(PREFIX("."), TAG(" "))
+#ifndef ZF_LOG_MESSAGE_TAG_FORMAT
+	#define ZF_LOG_MESSAGE_TAG_FORMAT \
+		(TAG(".", ZF_LOG_DEF_DELIMITER))
 #endif
 /* Fields that can be used in format specifications (see above).
  * 
@@ -199,11 +202,9 @@
 #define FUNCTION FUNCTION
 #define FILENAME FILENAME
 #define FILELINE FILELINE
-#define TAG(prefix_separator, trailing_separator)
+#define TAG(prefix_sep, tag_sep) TAG(prefix_sep, tag_sep)
 #define S(str) S(str) /* Constant string, usage: S("-") */
 #define F_UINT(width, value) F_UINT(width, value)
-
-
 
 /* Number of bytes to reserve for EOL in the log line buffer (must be >0).
  * Must be larger than or equal to length of ZF_LOG_EOL with terminating null.
@@ -284,7 +285,7 @@
  */
 #define _PP_ID(x) x
 #define _PP_NARGS_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,...) _24
-#define _PP_NARGS(...) _PP_ID(_PP_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+#define _PP_NARGS(...) _PP_ID(_PP_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
 
 /* There is a more efficient way to implement this, but it requires
  * working C preprocessor. Unfortunately, Microsoft Visual Studio doesn't
@@ -367,8 +368,12 @@
 #define _ZF_LOG_MESSAGE_FORMAT_MASK_PID          (1<<7)
 #define _ZF_LOG_MESSAGE_FORMAT_MASK_TID          (1<<8)
 #define _ZF_LOG_MESSAGE_FORMAT_MASK_LEVEL        (1<<9)
-#define _ZF_LOG_MESSAGE_FORMAT_MASK_S(s)         (1<<10)
-#define _ZF_LOG_MESSAGE_FORMAT_MASK_F_UINT(w, v) (1<<11)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_TAG(ps, ts)  (1<<10)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_FUNCTION     (1<<11)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_FILENAME     (1<<12)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_FILELINE     (1<<13)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_S(s)         (1<<14)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_F_UINT(w, v) (1<<15)
 
 #define _ZF_LOG_MESSAGE_FORMAT_MASK(field) \
 	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_MASK_, field)
@@ -934,33 +939,6 @@ static void put_ctx(zf_log_message *const msg)
 #endif
 }
 
-static void put_tag(zf_log_message *const msg, const char *const tag)
-{
-	const char *ch;
-	msg->tag_b = msg->p;
-	if (0 != (ch = _zf_log_tag_prefix))
-	{
-		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch)
-		{
-		}
-	}
-	if (0 != (ch = tag) && 0 != tag[0])
-	{
-		if (msg->tag_b != msg->p)
-		{
-			PUT_CSTR_CHECKED(msg->p, msg->e, ".");
-		}
-		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch)
-		{
-		}
-	}
-	msg->tag_e = msg->p;
-	if (msg->tag_b != msg->p)
-	{
-		PUT_CSTR_CHECKED(msg->p, msg->e, SEP(TAG));
-	}
-}
-
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_YEAR         UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_MONTH        UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_DAY          UNDEFINED
@@ -971,6 +949,21 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_PID          UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_TID          UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_LEVEL        UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_TAG(ps, ts) \
+	msg->tag_b = msg->p; \
+	if (0 != (ch = _zf_log_tag_prefix)) { \
+		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch) {} \
+	} \
+	if (0 != (ch = tag) && 0 != tag[0]) { \
+		if (msg->tag_b != msg->p) { \
+			PUT_CSTR_CHECKED(msg->p, msg->e, ps); \
+		} \
+		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch) {} \
+	} \
+	msg->tag_e = msg->p; \
+	if (msg->tag_b != msg->p) { \
+		PUT_CSTR_CHECKED(msg->p, msg->e, ts); \
+	}
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_FUNCTION     msg->p = put_string(funcname(src->func), msg->p, msg->e);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_FILENAME     msg->p = put_string(filename(src->file), msg->p, msg->e);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_FILELINE     msg->p = put_uint(src->line, 0, '\0', msg->p, msg->e);
@@ -978,6 +971,13 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_F_UINT(w, v) msg->p = put_uint(v, w, ' ', msg->p, msg->e);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT(field) \
 	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_PUT_, field)
+
+static void put_tag(zf_log_message *const msg, const char *const tag)
+{
+
+	const char *ch;
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PUT, ZF_LOG_MESSAGE_TAG_FORMAT)
+}
 
 static void put_src(zf_log_message *const msg, const src_location *const src)
 {
