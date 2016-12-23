@@ -132,48 +132,78 @@
 #ifndef ZF_LOG_EOL
 	#define ZF_LOG_EOL "\n"
 #endif
-/* String to put between parts of log line (date, time, pid, tid, level, tag,
- * source, message). If ZF_LOG_OPTIMIZE_SIZE is defined, can NOT contain
+/* String to put between parts of log line (tag, source, message).
+ * If ZF_LOG_OPTIMIZE_SIZE is defined, can NOT contain
  * following characters: '%', '\0'.
  */
 #ifndef ZF_LOG_SEPARATOR_DEFAULT
 	#define ZF_LOG_SEPARATOR_DEFAULT " "
-#endif
-/* String that separates date and following part.
- */
-#ifndef ZF_LOG_SEPARATOR_DATE
-	#define ZF_LOG_SEPARATOR_DATE ZF_LOG_SEPARATOR_DEFAULT
-#endif
-/* String that separates time and following part.
- */
-#ifndef ZF_LOG_SEPARATOR_TIME
-	#define ZF_LOG_SEPARATOR_TIME ZF_LOG_SEPARATOR_DEFAULT
-#endif
-/* String that separates PID and following part.
- */
-#ifndef ZF_LOG_SEPARATOR_PID
-	#define ZF_LOG_SEPARATOR_PID ZF_LOG_SEPARATOR_DEFAULT
-#endif
-/* String that separates TID and following part.
- */
-#ifndef ZF_LOG_SEPARATOR_TID
-	#define ZF_LOG_SEPARATOR_TID ZF_LOG_SEPARATOR_DEFAULT
-#endif
-/* String that separates log level and following part.
- */
-#ifndef ZF_LOG_SEPARATOR_LEVEL
-	#define ZF_LOG_SEPARATOR_LEVEL ZF_LOG_SEPARATOR_DEFAULT
 #endif
 /* String that separates tag and following part.
  */
 #ifndef ZF_LOG_SEPARATOR_TAG
 	#define ZF_LOG_SEPARATOR_TAG ZF_LOG_SEPARATOR_DEFAULT
 #endif
-/* String that separates source location and following part.
+/* Specifies log message context format. Log message context includes date,
+ * time, process id, thread id and message's log level. Custom fields can
+ * be added as well. Supported fields: YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
+ * MILLISECOND, PID, TID, LEVEL, S(str), F_UINT(width, value).
+ *
+ * Must be defined as a tuple, for example:
+ *
+ *   #define ZF_LOG_MESSAGE_CTX_FORMAT (YEAR, S("."), MONTH, S("."), DAY, S(" > "))
+ *
+ * In that case, resulting log message will be:
+ *
+ *   2016.12.22 > TAG function@filename.c:line Message text
+ *
+ * Note, that tag, source location and message text are not impacted by
+ * this setting. See ZF_LOG_MESSAGE_TAG_FORMAT and ZF_LOG_MESSAGE_SRC_FORMAT.
+ *
+ * If message context must be visually separated from the rest of the message,
+ * it must be reflected in context format (notice trailing S(" > ") in the
+ * example above).
  */
-#ifndef ZF_LOG_SEPARATOR_SRC
-	#define ZF_LOG_SEPARATOR_SRC ZF_LOG_SEPARATOR_DEFAULT
+#ifndef ZF_LOG_MESSAGE_CTX_FORMAT
+	#define ZF_LOG_MESSAGE_CTX_FORMAT \
+		(MONTH, S("-"), DAY, S(" "), \
+		 HOUR, S(":"), MINUTE, S(":"), SECOND, S("."), MILLISECOND, S(" "), \
+		 PID, S(" "), TID, S(" "), LEVEL, S(" "))
 #endif
+/*
+ */
+#ifndef ZF_LOG_MESSAGE_SRC_FORMAT
+	#define ZF_LOG_MESSAGE_SRC_FORMAT \
+		(FUNCTION, S("@"), FILENAME, S(":"), FILELINE, S(" "))
+#endif
+/* Example:
+ *   #define ZF_LOG_TAG_FORMAT (S("["), TAG(".", ""), S("]"))
+ */
+#ifndef ZF_LOG_TAG_FORMAT
+	#define ZF_LOG_TAG_FORMAT \
+		(PREFIX("."), TAG(" "))
+#endif
+/* Fields that can be used in format specifications (see above).
+ * 
+ */
+#define YEAR YEAR /* Year, format: xxxx */
+#define MONTH MONTH /* Month, format: xx */
+#define MONTH MONTH
+#define DAY DAY
+#define MINUTE MINUTE
+#define SECOND SECOND
+#define MILLISECOND MILLISECOND
+#define PID PID
+#define TID TID
+#define LEVEL LEVEL
+#define FUNCTION FUNCTION
+#define FILENAME FILENAME
+#define FILELINE FILELINE
+#define TAG(prefix_separator, trailing_separator)
+#define S(str) S(str) /* Constant string, usage: S("-") */
+#define F_UINT(width, value) F_UINT(width, value)
+
+
 
 /* Number of bytes to reserve for EOL in the log line buffer (must be >0).
  * Must be larger than or equal to length of ZF_LOG_EOL with terminating null.
@@ -241,6 +271,125 @@
 	#define INSTRUMENTED_CONST const
 #endif
 
+#define _PP_PASTE_2(a, b) a ## b
+#define _PP_CONCAT_2(a, b) _PP_PASTE_2(a, b)
+
+#define _PP_PASTE_2(a, b) a ## b
+#define _PP_CONCAT_2(a, b) _PP_PASTE_2(a, b)
+
+/* Microsoft C preprocessor is a piece of shit. This moron treats __VA_ARGS__
+ * as a single token and requires additional expansion to realize that it's
+ * actually a list. If not for it, there would be no need in this extra
+ * expansion.
+ */
+#define _PP_ID(x) x
+#define _PP_NARGS_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,...) _24
+#define _PP_NARGS(...) _PP_ID(_PP_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+
+/* There is a more efficient way to implement this, but it requires
+ * working C preprocessor. Unfortunately, Microsoft Visual Studio doesn't
+ * have one.
+ */
+#define _PP_HEAD__(x, ...) x
+#define _PP_HEAD_(...) _PP_ID(_PP_HEAD__(__VA_ARGS__, ~))
+#define _PP_HEAD(xs) _PP_HEAD_ xs
+#define _PP_TAIL_(x, ...) (__VA_ARGS__)
+#define _PP_TAIL(xs) _PP_TAIL_ xs
+
+/* Apply function macro to each element in tuple. Output is not
+ * enforced to be a tuple.
+ */
+#define _PP_MAP_1(f, xs) f(_PP_HEAD(xs))
+#define _PP_MAP_2(f, xs) f(_PP_HEAD(xs)) _PP_MAP_1(f, _PP_TAIL(xs))
+#define _PP_MAP_3(f, xs) f(_PP_HEAD(xs)) _PP_MAP_2(f, _PP_TAIL(xs))
+#define _PP_MAP_4(f, xs) f(_PP_HEAD(xs)) _PP_MAP_3(f, _PP_TAIL(xs))
+#define _PP_MAP_5(f, xs) f(_PP_HEAD(xs)) _PP_MAP_4(f, _PP_TAIL(xs))
+#define _PP_MAP_6(f, xs) f(_PP_HEAD(xs)) _PP_MAP_5(f, _PP_TAIL(xs))
+#define _PP_MAP_7(f, xs) f(_PP_HEAD(xs)) _PP_MAP_6(f, _PP_TAIL(xs))
+#define _PP_MAP_8(f, xs) f(_PP_HEAD(xs)) _PP_MAP_7(f, _PP_TAIL(xs))
+#define _PP_MAP_9(f, xs) f(_PP_HEAD(xs)) _PP_MAP_8(f, _PP_TAIL(xs))
+#define _PP_MAP_10(f, xs) f(_PP_HEAD(xs)) _PP_MAP_9(f, _PP_TAIL(xs))
+#define _PP_MAP_11(f, xs) f(_PP_HEAD(xs)) _PP_MAP_10(f, _PP_TAIL(xs))
+#define _PP_MAP_12(f, xs) f(_PP_HEAD(xs)) _PP_MAP_11(f, _PP_TAIL(xs))
+#define _PP_MAP_13(f, xs) f(_PP_HEAD(xs)) _PP_MAP_12(f, _PP_TAIL(xs))
+#define _PP_MAP_14(f, xs) f(_PP_HEAD(xs)) _PP_MAP_13(f, _PP_TAIL(xs))
+#define _PP_MAP_15(f, xs) f(_PP_HEAD(xs)) _PP_MAP_14(f, _PP_TAIL(xs))
+#define _PP_MAP_16(f, xs) f(_PP_HEAD(xs)) _PP_MAP_15(f, _PP_TAIL(xs))
+#define _PP_MAP_17(f, xs) f(_PP_HEAD(xs)) _PP_MAP_16(f, _PP_TAIL(xs))
+#define _PP_MAP_18(f, xs) f(_PP_HEAD(xs)) _PP_MAP_17(f, _PP_TAIL(xs))
+#define _PP_MAP_19(f, xs) f(_PP_HEAD(xs)) _PP_MAP_18(f, _PP_TAIL(xs))
+#define _PP_MAP_20(f, xs) f(_PP_HEAD(xs)) _PP_MAP_19(f, _PP_TAIL(xs))
+#define _PP_MAP_21(f, xs) f(_PP_HEAD(xs)) _PP_MAP_20(f, _PP_TAIL(xs))
+#define _PP_MAP_22(f, xs) f(_PP_HEAD(xs)) _PP_MAP_21(f, _PP_TAIL(xs))
+#define _PP_MAP_23(f, xs) f(_PP_HEAD(xs)) _PP_MAP_22(f, _PP_TAIL(xs))
+#define _PP_MAP_24(f, xs) f(_PP_HEAD(xs)) _PP_MAP_23(f, _PP_TAIL(xs))
+#define _PP_MAP(f, xs) _PP_CONCAT_2(_PP_MAP_, _PP_NARGS xs) (f, xs)
+
+/* Apply function macro to each element in tuple in reverse order.
+ * Output is not enforced to be a tuple.
+ */
+#define _PP_RMAP_1(f, xs) f(_PP_HEAD(xs))
+#define _PP_RMAP_2(f, xs) _PP_RMAP_1(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_3(f, xs) _PP_RMAP_2(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_4(f, xs) _PP_RMAP_3(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_5(f, xs) _PP_RMAP_4(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_6(f, xs) _PP_RMAP_5(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_7(f, xs) _PP_RMAP_6(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_8(f, xs) _PP_RMAP_7(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_9(f, xs) _PP_RMAP_8(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_10(f, xs) _PP_RMAP_9(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_11(f, xs) _PP_RMAP_10(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_12(f, xs) _PP_RMAP_11(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_13(f, xs) _PP_RMAP_12(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_14(f, xs) _PP_RMAP_13(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_15(f, xs) _PP_RMAP_14(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_16(f, xs) _PP_RMAP_15(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_17(f, xs) _PP_RMAP_16(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_18(f, xs) _PP_RMAP_17(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_19(f, xs) _PP_RMAP_18(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_20(f, xs) _PP_RMAP_19(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_21(f, xs) _PP_RMAP_20(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_22(f, xs) _PP_RMAP_21(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_23(f, xs) _PP_RMAP_22(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP_24(f, xs) _PP_RMAP_23(f, _PP_TAIL(xs)) f(_PP_HEAD(xs))
+#define _PP_RMAP(f, xs) _PP_CONCAT_2(_PP_RMAP_, _PP_NARGS xs) (f, xs)
+
+/* Used to implement _ZF_LOG_MESSAGE_FORMAT_CONTAINS() macro. All possible
+ * fields must be mentioned here.
+ */
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_YEAR         (1<<0)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_MONTH        (1<<1)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_DAY          (1<<2)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_HOUR         (1<<3)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_MINUTE       (1<<4)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_SECOND       (1<<5)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_MILLISECOND  (1<<6)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_PID          (1<<7)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_TID          (1<<8)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_LEVEL        (1<<9)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_S(s)         (1<<10)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK_F_UINT(w, v) (1<<11)
+
+#define _ZF_LOG_MESSAGE_FORMAT_MASK(field) \
+	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_MASK_, field)
+
+/* Expands to expressions that evaluates to true if field is used in
+ * specified format specification. Example:
+ *
+ *   #if _ZF_LOG_MESSAGE_FORMAT_CONTAINS(F_UINT, ZF_LOG_MESSAGE_CTX_FORMAT)
+ *       ...
+ *   #endif
+ */
+#define _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, format) \
+	(_ZF_LOG_MESSAGE_FORMAT_MASK(field) & (0 _PP_MAP(| _ZF_LOG_MESSAGE_FORMAT_MASK, format)))
+
+/* Same, but checks all supported format specifications.
+ */
+#define _ZF_LOG_MESSAGE_FORMAT_FIELD_USED(field) \
+	(_ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+	 _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_TAG_FORMAT) || \
+	 _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_SRC_FORMAT) )
+
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
 	#define memccpy _memccpy
@@ -294,7 +443,6 @@ STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
 #if !defined(_WIN32) && !defined(_WIN64)
 	STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
 #endif
-STATIC_ASSERT(time, 0 < sizeof(SEP(TIME)));
 static const char c_hex[] = "0123456789abcdef";
 
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
@@ -709,6 +857,60 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 		} \
 	} _ZF_LOG_ONCE
 
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_YEAR         "%04u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_MONTH        "%02u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_DAY          "%02u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_HOUR         "%02u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_MINUTE       "%02u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_SECOND       "%02u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_MILLISECOND  "%03u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_PID          "%5i"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_TID          "%5i"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_LEVEL        "%c"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_FUNCTION     "%s"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_FILENAME     "%s"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_FILELINE     "%u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_S(s)         s
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_F_UINT(w, v) "%" #w "u"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT(field) \
+	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_, field)
+
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_YEAR         ,(unsigned)(tm.tm_year + 1900)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_MONTH        ,(unsigned)(tm.tm_mon + 1)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_DAY          ,(unsigned)tm.tm_mday
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_HOUR         ,(unsigned)tm.tm_hour
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_MINUTE       ,(unsigned)tm.tm_min
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_SECOND       ,(unsigned)tm.tm_sec
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_MILLISECOND  ,(unsigned)msec
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_PID          ,pid
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_TID          ,tid
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_LEVEL        ,(char)lvl_char(msg->lvl)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_FUNCTION     ,funcname(src->func)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_FILENAME     ,filename(src->file)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_FILELINE     ,src->line
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_S(s)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_NUMBER(w, v) ,v
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL(field) \
+	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_, field)
+
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_YEAR         p = put_uint_r(tm.tm_year + 1900, 4, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_MONTH        p = put_uint_r((unsigned)tm.tm_mon + 1, 2, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_DAY          p = put_uint_r((unsigned)tm.tm_mday, 2, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_HOUR         p = put_uint_r((unsigned)tm.tm_hour, 2, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_MINUTE       p = put_uint_r((unsigned)tm.tm_min, 2, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_SECOND       p = put_uint_r((unsigned)tm.tm_sec, 2, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_MILLISECOND  p = put_uint_r(msec, 3, '0', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_PID          p = put_int_r(pid, 5, ' ', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_TID          p = put_int_r(tid, 5, ' ', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_LEVEL        *--p = lvl_char(msg->lvl);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_FUNCTION     UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_FILENAME     UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_FILELINE     UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_S(s)         PUT_CSTR_R(p, s);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R_F_UINT(w, v) p = put_uint_r(v, w, ' ', p);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R(field) \
+	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_PUT_R_, field)
+
 static void put_ctx(zf_log_message *const msg)
 {
 	struct tm tm;
@@ -720,34 +922,14 @@ static void put_ctx(zf_log_message *const msg)
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
 	n = snprintf(msg->p, nprintf_size(msg),
-				 "%02u-%02u"SEP(DATE)"%02u:%02u:%02u.%03u"SEP(TIME)"%5i"SEP(PID)"%5i"SEP(TID)"%c"SEP(LEVEL),
-				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
-				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
-				 (unsigned)msec,
-				 pid, tid, (char)lvl_char(msg->lvl));
+				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT)
+                 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT));
 	put_nprintf(msg, n);
 #else
 	char buf[64];
 	char *const e = buf + sizeof(buf);
 	char *p = e;
-	PUT_CSTR_R(p, SEP(LEVEL));
-	*--p = lvl_char(msg->lvl);
-	PUT_CSTR_R(p, SEP(TID));
-	p = put_int_r(tid, 5, ' ', p);
-	PUT_CSTR_R(p, SEP(PID));
-	p = put_int_r(pid, 5, ' ', p);
-	PUT_CSTR_R(p, SEP(TIME));
-	p = put_uint_r(msec, 3, '0', p);
-	*--p = '.';
-	p = put_uint_r((unsigned)tm.tm_sec, 2, '0', p);
-	*--p = ':';
-	p = put_uint_r((unsigned)tm.tm_min, 2, '0', p);
-	*--p = ':';
-	p = put_uint_r((unsigned)tm.tm_hour, 2, '0', p);
-	PUT_CSTR_R(p, SEP(DATE));
-	p = put_uint_r((unsigned)tm.tm_mday, 2, '0', p);
-	*--p = '-';
-	p = put_uint_r((unsigned)tm.tm_mon + 1, 2, '0', p);
+	_PP_RMAP(_ZF_LOG_MESSAGE_FORMAT_PUT_R, ZF_LOG_MESSAGE_CTX_FORMAT)
 	msg->p = put_stringn(p, e, msg->p, msg->e);
 #endif
 }
@@ -764,9 +946,9 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 	}
 	if (0 != (ch = tag) && 0 != tag[0])
 	{
-		if (msg->tag_b != msg->p && msg->e != msg->p)
+		if (msg->tag_b != msg->p)
 		{
-			*msg->p++ = '.';
+			PUT_CSTR_CHECKED(msg->p, msg->e, ".");
 		}
 		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch)
 		{
@@ -779,20 +961,34 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 	}
 }
 
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_YEAR         UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_MONTH        UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_DAY          UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_HOUR         UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_MINUTE       UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_SECOND       UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_MILLISECOND  UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_PID          UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_TID          UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_LEVEL        UNDEFINED
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_FUNCTION     msg->p = put_string(funcname(src->func), msg->p, msg->e);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_FILENAME     msg->p = put_string(filename(src->file), msg->p, msg->e);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_FILELINE     msg->p = put_uint(src->line, 0, '\0', msg->p, msg->e);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_S(s)         PUT_CSTR_CHECKED(msg->p, msg->e, s);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_F_UINT(w, v) msg->p = put_uint(v, w, ' ', msg->p, msg->e);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT(field) \
+	_PP_CONCAT_2(_ZF_LOG_MESSAGE_FORMAT_PUT_, field)
+
 static void put_src(zf_log_message *const msg, const src_location *const src)
 {
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(msg->p, nprintf_size(msg), "%s@%s:%u"SEP(SRC),
-				 funcname(src->func), filename(src->file), src->line);
+	n = snprintf(msg->p, nprintf_size(msg),
+				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
+                 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT));
 	put_nprintf(msg, n);
 #else
-	msg->p = put_string(funcname(src->func), msg->p, msg->e);
-	if (msg->p < msg->e) *msg->p++ = '@';
-	msg->p = put_string(filename(src->file), msg->p, msg->e);
-	if (msg->p < msg->e) *msg->p++ = ':';
-	msg->p = put_uint(src->line, 0, '\0', msg->p, msg->e);
-	PUT_CSTR_CHECKED(msg->p, msg->e, SEP(SRC));
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PUT, ZF_LOG_MESSAGE_SRC_FORMAT)
 #endif
 }
 
@@ -993,96 +1189,4 @@ void _zf_log_write_mem_aux(
 	va_start(va, fmt);
 	_zf_log_write_imp(log, 0, &mem, lvl, tag, fmt, va);
 	va_end(va);
-}
-
-#define _PP_PASTE_2(a, b) a ## b
-#define _PP_CONCAT_2(a, b) _PP_PASTE_2(a, b)
-
-/* Microsoft C preprocessor is a piece of shit. This moron treats __VA_ARGS__
- * as a single token and requires additional expansion to realize that it's
- * actually a list. If not for it, there would be no need in this extra
- * expansion.
- */
-#define _PP_EXPAND(x) x
-#define _PP_NARGS_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,...) _24
-#define _PP_NARGS(...) _PP_EXPAND(_PP_NARGS_N(__VA_ARGS__,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
-
-/* There is a more efficient way to implement this, but it requires
- * working C preprocessor. Unfortunately, Microsoft Visual Studio doesn't
- * have one.
- */
-#define _PP_HEAD__(x, ...) x
-#define _PP_HEAD_(...) _PP_EXPAND(_PP_HEAD__(__VA_ARGS__, ~))
-#define _PP_HEAD(xs) _PP_HEAD_ xs
-#define _PP_TAIL_(x, ...) (__VA_ARGS__)
-#define _PP_TAIL(xs) _PP_TAIL_ xs
-
-#define _PP_FOLD_1(f, a, xs) f(a, _PP_HEAD(xs))
-#define _PP_FOLD_2(f, a, xs) _PP_FOLD_1(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_3(f, a, xs) _PP_FOLD_2(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_4(f, a, xs) _PP_FOLD_3(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_5(f, a, xs) _PP_FOLD_4(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_6(f, a, xs) _PP_FOLD_5(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_7(f, a, xs) _PP_FOLD_6(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_8(f, a, xs) _PP_FOLD_7(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_9(f, a, xs) _PP_FOLD_8(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_10(f, a, xs) _PP_FOLD_9(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_11(f, a, xs) _PP_FOLD_10(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_12(f, a, xs) _PP_FOLD_11(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_13(f, a, xs) _PP_FOLD_12(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_14(f, a, xs) _PP_FOLD_13(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_15(f, a, xs) _PP_FOLD_14(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_16(f, a, xs) _PP_FOLD_15(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_17(f, a, xs) _PP_FOLD_16(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_18(f, a, xs) _PP_FOLD_17(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_19(f, a, xs) _PP_FOLD_18(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_20(f, a, xs) _PP_FOLD_19(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_21(f, a, xs) _PP_FOLD_20(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_22(f, a, xs) _PP_FOLD_21(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_23(f, a, xs) _PP_FOLD_22(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD_24(f, a, xs) _PP_FOLD_23(f, f(a, _PP_HEAD(xs)), _PP_TAIL(xs))
-#define _PP_FOLD(f, a, xs) _PP_CONCAT_2(_PP_FOLD_, _PP_NARGS xs) (f, a, xs)
-
-#define _PP_JOIN_REVERSE(a, v) v a
-#define _PP_JOIN(a, v) a v
-
-#define _PP_ID(x) x
-
-#define ZF_TEST(T, A, B, C) \
-    (A, T(+), B, T(-), C, T(==))
-
-#define ONE 1
-#define TWO 2
-#define THREE 3
-
-STATIC_ASSERT(lets_check_it, 2 _PP_FOLD(_PP_JOIN_REVERSE,,ZF_TEST(_PP_ID, ONE, TWO, THREE)));
-
-/*
-#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, MILLISECOND, PID, TID, LEVEL) \
-    _(MONTH) _(T("-")) _(DAY) _(T(" ")) _(HOUR) _(T(":")) _(MINUTE) _(T(":")) _(SECOND) _(T(".")) _(MILLISECOND) _(T(" ")) _(PID) _(T(" ")) _(LEVEL) _(T(" "))
-
-#define ZF_LOG_CONTEXT_FORMAT(_, T, YEAR, MONTH, DAY) \
-    _(T("|")) _(YEAR) _(T("-")) _(MONTH) _(T("-")) _(DAY) _(T("|"))
-*/
-
-#define ZF_LOG_CONTEXT_FORMAT(T, YEAR, MONTH, DAY) \
-    (T("|"), YEAR, T("-"), MONTH, T("-"), DAY, T("|"))
-
-#define HAS_MONTH (0 ZF_LOG_CONTEXT_FORMAT(AS_IS, NOOP,,||1,,,,,,,,))
-
-#ifdef ZF_LOG_LIBRARY_PREFIX
-    #define foo_but_not_foo _ZF_LOG_DECOR(foo_but_not_foo)
-#endif
-void foo_but_not_foo()
-{
-    fprintf(stderr,
-            _PP_FOLD(_PP_JOIN,,ZF_LOG_CONTEXT_FORMAT(_PP_ID, "%u", "%s", "%i")),
-            2016, "December", 21);
-
-    char *p = 0; (void)p;
-#define _PUT_STR(s) *p++ = (s)[0];
-#define _PUT_YEAR p+=2016;
-#define _PUT_MONTH p+=sizeof("December");
-#define _PUT_DAY p+=21;
-    _PP_FOLD(_PP_JOIN_REVERSE,,ZF_LOG_CONTEXT_FORMAT(_PUT_STR, _PUT_YEAR, _PUT_MONTH, _PUT_DAY))
 }
