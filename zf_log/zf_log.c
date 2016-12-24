@@ -296,6 +296,8 @@
 #define _PP_HEAD(xs) _PP_HEAD_ xs
 #define _PP_TAIL_(x, ...) (__VA_ARGS__)
 #define _PP_TAIL(xs) _PP_TAIL_ xs
+#define _PP_UNTUPLE_(...) __VA_ARGS__
+#define _PP_UNTUPLE(xs) _PP_UNTUPLE_ xs
 
 /* Apply function macro to each element in tuple. Output is not
  * enforced to be a tuple.
@@ -374,8 +376,8 @@
 #define _ZF_LOG_MESSAGE_FORMAT_MASK__FILENAME     (1<<12)
 #define _ZF_LOG_MESSAGE_FORMAT_MASK__FILELINE     (1<<13)
 #define _ZF_LOG_MESSAGE_FORMAT_MASK__S(s)         (1<<14)
-#define _ZF_LOG_MESSAGE_FORMAT_MASK__F_UINT(w, v) (1<<15)
-
+#define _ZF_LOG_MESSAGE_FORMAT_MASK__F_INIT(expr) (1<<15)
+#define _ZF_LOG_MESSAGE_FORMAT_MASK__F_UINT(w, v) (1<<16)
 #define _ZF_LOG_MESSAGE_FORMAT_MASK(field) \
 	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_MASK_, _, field)
 
@@ -397,7 +399,7 @@
 #define _ZF_LOG_MESSAGE_FORMAT_FIELD_USED(field) \
 	(_ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_CTX_FORMAT) || \
 	 _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_TAG_FORMAT) || \
-	 _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_SRC_FORMAT) )
+	 _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, ZF_LOG_MESSAGE_SRC_FORMAT))
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
@@ -788,7 +790,6 @@ static INLINE void put_nprintf(zf_log_message *const msg, const int n)
 	}
 }
 
-#if !ZF_LOG_OPTIMIZE_SIZE
 static INLINE char *put_padding_r(const unsigned w, const char wc,
 								  char *p, char *e)
 {
@@ -863,14 +864,33 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 		} \
 	} _ZF_LOG_ONCE
 
-#endif
-
 #define PUT_CSTR_CHECKED(p, e, STR) \
 	do { \
 		for (unsigned i = 0; (e) > (p) && (sizeof(STR) - 1) > i; ++i) { \
 			*(p)++ = (STR)[i]; \
 		} \
 	} _ZF_LOG_ONCE
+
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__YEAR
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__MONTH
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__DAY
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__HOUR
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__MINUTE
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__SECOND
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__MILLISECOND
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__PID
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__TID
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__LEVEL
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__TAG(ps, ts)
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__FUNCTION
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__FILENAME
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__FILELINE
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__S(s)
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__F_INIT(expr) _PP_UNTUPLE(expr);
+#define _ZF_LOG_MESSAGE_FORMAT_INIT__F_UINT(w, v)
+#define _ZF_LOG_MESSAGE_FORMAT_INIT(field) \
+	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_INIT_, _, field)
 
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__             ""
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__YEAR         "%04u"
@@ -883,10 +903,12 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__PID          "%5i"
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__TID          "%5i"
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__LEVEL        "%c"
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__TAG          UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__FUNCTION     "%s"
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__FILENAME     "%s"
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__FILELINE     "%u"
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__S(s)         s
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__F_INIT(expr) ""
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT__F_UINT(w, v) "%" #w "u"
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT(field) \
 	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT_, _, field)
@@ -902,11 +924,13 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__PID          ,pid
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__TID          ,tid
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__LEVEL        ,(char)lvl_char(msg->lvl)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__TAG          UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__FUNCTION     ,funcname(src->func)
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__FILENAME     ,filename(src->file)
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__FILELINE     ,src->line
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__S(s)
-#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__NUMBER(w, v) ,v
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__F_INIT(expr)
+#define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL__F_UINT(w, v) ,v
 #define _ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL(field) \
 	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL_, _, field)
 
@@ -921,34 +945,52 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__PID          p = put_int_r(pid, 5, ' ', p);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__TID          p = put_int_r(tid, 5, ' ', p);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__LEVEL        *--p = lvl_char(msg->lvl);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R__TAG          UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__FUNCTION     UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__FILENAME     UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__FILELINE     UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__S(s)         PUT_CSTR_R(p, s);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT_R__F_INIT(expr)
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R__F_UINT(w, v) p = put_uint_r(v, w, ' ', p);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT_R(field) \
 	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_PUT_R_, _, field)
 
 static void put_ctx(zf_log_message *const msg)
 {
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_CTX_FORMAT)
+#if !_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_CTX_FORMAT)
+	VAR_UNUSED(msg);
+#else
+	#if _ZF_LOG_MESSAGE_FORMAT_CONTAINS(YEAR, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(MONTH, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(DAY, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(HOUR, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(MINUTE, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(SECOND, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(MILLISECOND, ZF_LOG_MESSAGE_CTX_FORMAT)
 	struct tm tm;
 	unsigned msec;
-	int pid, tid;
 	g_time_cb(&tm, &msec);
+	#endif
+	#if _ZF_LOG_MESSAGE_FORMAT_CONTAINS(PID, ZF_LOG_MESSAGE_CTX_FORMAT) || \
+		_ZF_LOG_MESSAGE_FORMAT_CONTAINS(TID, ZF_LOG_MESSAGE_CTX_FORMAT)
+	int pid, tid;
 	g_pid_cb(&pid, &tid);
+	#endif
 
-#if ZF_LOG_OPTIMIZE_SIZE
+	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
 	n = snprintf(msg->p, nprintf_size(msg),
 				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT)
                  _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT));
 	put_nprintf(msg, n);
-#else
+	#else
 	char buf[64];
 	char *const e = buf + sizeof(buf);
 	char *p = e;
 	_PP_RMAP(_ZF_LOG_MESSAGE_FORMAT_PUT_R, ZF_LOG_MESSAGE_CTX_FORMAT)
 	msg->p = put_stringn(p, e, msg->p, msg->e);
+	#endif
 #endif
 }
 
@@ -983,12 +1025,14 @@ static void put_ctx(zf_log_message *const msg)
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__FILENAME     msg->p = put_string(filename(src->file), msg->p, msg->e);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__FILELINE     msg->p = put_uint(src->line, 0, '\0', msg->p, msg->e);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__S(s)         PUT_CSTR_CHECKED(msg->p, msg->e, s);
+#define _ZF_LOG_MESSAGE_FORMAT_PUT__F_INIT(expr)
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__F_UINT(w, v) msg->p = put_uint(v, w, ' ', msg->p, msg->e);
 #define _ZF_LOG_MESSAGE_FORMAT_PUT(field) \
 	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_PUT_, _, field)
 
 static void put_tag(zf_log_message *const msg, const char *const tag)
 {
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_TAG_FORMAT)
 #if !_ZF_LOG_MESSAGE_FORMAT_CONTAINS(TAG, ZF_LOG_MESSAGE_TAG_FORMAT)
 	VAR_UNUSED(tag);
 #endif
@@ -1001,6 +1045,7 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 
 static void put_src(zf_log_message *const msg, const src_location *const src)
 {
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_SRC_FORMAT)
 #if !_ZF_LOG_MESSAGE_FORMAT_CONTAINS(FUNCTION, ZF_LOG_MESSAGE_SRC_FORMAT) && \
 	!_ZF_LOG_MESSAGE_FORMAT_CONTAINS(FILENAME, ZF_LOG_MESSAGE_SRC_FORMAT) && \
 	!_ZF_LOG_MESSAGE_FORMAT_CONTAINS(FILELINE, ZF_LOG_MESSAGE_SRC_FORMAT)
