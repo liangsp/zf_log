@@ -243,9 +243,15 @@ static void init_expected_lines()
 	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_CTX_FORMAT)
 	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_TAG_FORMAT)
 	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_SRC_FORMAT)
+#if _ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_CTX_FORMAT) || \
+	_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_TAG_FORMAT) || \
+	_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_SRC_FORMAT)
 	snprintf(expected_header, sizeof(expected_header),
 			MESSAGE_EXPECTED_PRINTF_FMTS
 			MESSAGE_EXPECTED_PRINTF_VALS);
+#else
+	*expected_header ='\0';
+#endif
 
 	snprintf(line, sizeof(line), "%s%s", expected_header,
 			 "Lorem ipsum dolor sit amet.");
