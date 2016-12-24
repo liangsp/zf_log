@@ -1,3 +1,6 @@
+#if defined(_WIN32) || defined(_WIN64)
+	#define _CRT_NONSTDC_NO_WARNINGS
+#endif
 #define ZF_LOG_ANDROID_LOG 0
 #define ZF_LOG_BUF_SZ 128
 #define ZF_LOG_MEM_WIDTH 16
