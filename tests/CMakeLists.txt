@@ -58,6 +58,16 @@ add_test_target_group(test_log_level_override SOURCES test_log_level_override.c)
 add_test_target_group(test_log_message_content SOURCES test_log_message_content.c)
 add_test_target_group(test_log_message_content_Os SOURCES test_log_message_content.c DEFINES ZF_LOG_OPTIMIZE_SIZE=1)
 
+add_test_target_group(test_log_message_content_empty_format SOURCES test_log_message_content.c DEFINES
+	"ZF_LOG_MESSAGE_CTX_FORMAT=()"
+	"ZF_LOG_MESSAGE_TAG_FORMAT=()"
+	"ZF_LOG_MESSAGE_SRC_FORMAT=()")
+add_test_target_group(test_log_message_content_empty_format_Os SOURCES test_log_message_content.c DEFINES
+	"ZF_LOG_OPTIMIZE_SIZE=1"
+	"ZF_LOG_MESSAGE_CTX_FORMAT=()"
+	"ZF_LOG_MESSAGE_TAG_FORMAT=()"
+	"ZF_LOG_MESSAGE_SRC_FORMAT=()")
+
 add_test_target_group(test_source_location_none SOURCES test_source_location.c
 		DEFINES ZF_LOG_SRCLOC=ZF_LOG_SRCLOC_NONE TEST_SRCLOC=ZF_LOG_SRCLOC_NONE)
 add_test_target_group(test_source_location_short SOURCES test_source_location.c
