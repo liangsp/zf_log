@@ -379,6 +379,9 @@
 #define _ZF_LOG_MESSAGE_FORMAT_MASK(field) \
 	_PP_CONCAT_3(_ZF_LOG_MESSAGE_FORMAT_MASK_, _, field)
 
+#define _ZF_LOG_MESSAGE_FORMAT_FIELDS(format) \
+	(0 _PP_MAP(| _ZF_LOG_MESSAGE_FORMAT_MASK, format))
+
 /* Expands to expressions that evaluates to true if field is used in
  * specified format specification. Example:
  *
@@ -387,7 +390,7 @@
  *   #endif
  */
 #define _ZF_LOG_MESSAGE_FORMAT_CONTAINS(field, format) \
-	(_ZF_LOG_MESSAGE_FORMAT_MASK(field) & (0 _PP_MAP(| _ZF_LOG_MESSAGE_FORMAT_MASK, format)))
+	(_ZF_LOG_MESSAGE_FORMAT_MASK(field) & _ZF_LOG_MESSAGE_FORMAT_FIELDS(format))
 
 /* Same, but checks all supported format specifications.
  */
@@ -605,6 +608,7 @@ static const zf_log_spec global_spec =
 	ZF_LOG_GLOBAL_OUTPUT,
 };
 
+#if _ZF_LOG_MESSAGE_FORMAT_CONTAINS(LEVEL, ZF_LOG_MESSAGE_CTX_FORMAT)
 static char lvl_char(const int lvl)
 {
 	switch (lvl)
@@ -626,6 +630,7 @@ static char lvl_char(const int lvl)
 		return '?';
 	}
 }
+#endif
 
 #define GCCVER_LESS(MAJOR, MINOR, PATCH) \
 	(__GNUC__ < MAJOR || \
@@ -741,11 +746,14 @@ static void buffer_callback(zf_log_message *msg, char *buf)
 	msg->e = (msg->p = msg->buf = buf) + g_buf_sz;
 }
 
+#if _ZF_LOG_MESSAGE_FORMAT_CONTAINS(FUNCTION, ZF_LOG_MESSAGE_SRC_FORMAT)
 static const char *funcname(const char *func)
 {
 	return func? func: "";
 }
+#endif
 
+#if _ZF_LOG_MESSAGE_FORMAT_CONTAINS(FILENAME, ZF_LOG_MESSAGE_SRC_FORMAT)
 static const char *filename(const char *file)
 {
 	const char *f = file;
@@ -758,6 +766,7 @@ static const char *filename(const char *file)
 	}
 	return f;
 }
+#endif
 
 static INLINE size_t nprintf_size(zf_log_message *const msg)
 {
@@ -955,6 +964,7 @@ static void put_ctx(zf_log_message *const msg)
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__TID          UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__LEVEL        UNDEFINED
 #define _ZF_LOG_MESSAGE_FORMAT_PUT__TAG(ps, ts) \
+	const char *ch; \
 	msg->tag_b = msg->p; \
 	if (0 != (ch = _zf_log_tag_prefix)) { \
 		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch) {} \
@@ -979,21 +989,35 @@ static void put_ctx(zf_log_message *const msg)
 
 static void put_tag(zf_log_message *const msg, const char *const tag)
 {
-
-	const char *ch;
+#if !_ZF_LOG_MESSAGE_FORMAT_CONTAINS(TAG, ZF_LOG_MESSAGE_TAG_FORMAT)
+	VAR_UNUSED(tag);
+#endif
+#if !_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_TAG_FORMAT)
+	VAR_UNUSED(msg);
+#else
 	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PUT, ZF_LOG_MESSAGE_TAG_FORMAT)
+#endif
 }
 
 static void put_src(zf_log_message *const msg, const src_location *const src)
 {
-#if ZF_LOG_OPTIMIZE_SIZE
+#if !_ZF_LOG_MESSAGE_FORMAT_CONTAINS(FUNCTION, ZF_LOG_MESSAGE_SRC_FORMAT) && \
+	!_ZF_LOG_MESSAGE_FORMAT_CONTAINS(FILENAME, ZF_LOG_MESSAGE_SRC_FORMAT) && \
+	!_ZF_LOG_MESSAGE_FORMAT_CONTAINS(FILELINE, ZF_LOG_MESSAGE_SRC_FORMAT)
+	VAR_UNUSED(src);
+#endif
+#if !_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_SRC_FORMAT)
+	VAR_UNUSED(msg);
+#else
+	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
 	n = snprintf(msg->p, nprintf_size(msg),
 				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
                  _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT));
 	put_nprintf(msg, n);
-#else
+	#else
 	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PUT, ZF_LOG_MESSAGE_SRC_FORMAT)
+	#endif
 #endif
 }
 
