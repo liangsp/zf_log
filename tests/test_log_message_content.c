@@ -11,22 +11,42 @@
 #define ASSERT_FITS(s) \
 	((sizeof((s)) < ZF_LOG_BUF_SZ)? (s): ((char **)0)[0])
 
+#define MESSAGE_EXPECTED_YEAR         "2106"
+#define MESSAGE_EXPECTED_MONTH        "12"
+#define MESSAGE_EXPECTED_DAY          "23"
+#define MESSAGE_EXPECTED_HOUR         "12"
+#define MESSAGE_EXPECTED_MINUTE       "34"
+#define MESSAGE_EXPECTED_SECOND       "56"
+#define MESSAGE_EXPECTED_MILLISECOND  "789"
+#define MESSAGE_EXPECTED_PID          " 9876"
+#define MESSAGE_EXPECTED_TID          " 5432"
+#define MESSAGE_EXPECTED_LEVEL        "I"
+#define MESSAGE_EXPECTED_TAG(ps, ts)  "prefix" ps "TAG" ts
+#define MESSAGE_EXPECTED_FUNCTION     "function"
+#define MESSAGE_EXPECTED_FILENAME     "file"
+#define MESSAGE_EXPECTED_FILELINE     "42"
+#define MESSAGE_EXPECTED_S(s)         s
+#define MESSAGE_EXPECTED_F_UINT(w, v) #v
+#define MESSAGE_EXPECTED(field) \
+	_PP_CONCAT_2(MESSAGE_EXPECTED_, field)
+
+#define EXPECTED_HEADER \
+	_PP_MAP(MESSAGE_EXPECTED, ZF_LOG_MESSAGE_CTX_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED, ZF_LOG_MESSAGE_TAG_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED, ZF_LOG_MESSAGE_SRC_FORMAT)
+
 static const char c_test_fmt[] =
 	"Lorem ipsum dolor sit amet.";
 static const char c_test_mem[] =
 	"Here's to the crazy ones.";
 
 static const char *const c_msg_expected_lines[] = {
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"Lorem ipsum dolor sit amet.")
+	ASSERT_FITS(EXPECTED_HEADER "Lorem ipsum dolor sit amet.")
 };
 static const char *const c_mem_expected_lines[] = {
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"Lorem ipsum dolor sit amet."),
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"48657265277320746f20746865206372  Here's to the cr"),
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"617a79206f6e65732e00              azy ones.?")
+	ASSERT_FITS(EXPECTED_HEADER "Lorem ipsum dolor sit amet."),
+	ASSERT_FITS(EXPECTED_HEADER "48657265277320746f20746865206372  Here's to the cr"),
+	ASSERT_FITS(EXPECTED_HEADER "617a79206f6e65732e00              azy ones.?")
 };
 
 #define MAX_LINES 4
@@ -75,6 +95,7 @@ static void mock_time_callback(struct tm *const tm, unsigned *const msec)
 	tm->tm_hour = 12;
 	tm->tm_mday = 23;
 	tm->tm_mon = 11;
+	tm->tm_year = 2016 - 1900;
 	*msec = 789;
 }
 
