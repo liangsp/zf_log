@@ -8,46 +8,61 @@
 #include <stddef.h>
 #include <string.h>
 
-#define ASSERT_FITS(s) \
-	((sizeof((s)) < ZF_LOG_BUF_SZ)? (s): ((char **)0)[0])
+#define MESSAGE_EXPECTED_PRINTF_FMT_YEAR         "2106"
+#define MESSAGE_EXPECTED_PRINTF_FMT_MONTH        "12"
+#define MESSAGE_EXPECTED_PRINTF_FMT_DAY          "23"
+#define MESSAGE_EXPECTED_PRINTF_FMT_HOUR         "12"
+#define MESSAGE_EXPECTED_PRINTF_FMT_MINUTE       "34"
+#define MESSAGE_EXPECTED_PRINTF_FMT_SECOND       "56"
+#define MESSAGE_EXPECTED_PRINTF_FMT_MILLISECOND  "789"
+#define MESSAGE_EXPECTED_PRINTF_FMT_PID          " 9876"
+#define MESSAGE_EXPECTED_PRINTF_FMT_TID          " 5432"
+#define MESSAGE_EXPECTED_PRINTF_FMT_LEVEL        "I"
+#define MESSAGE_EXPECTED_PRINTF_FMT_TAG(ps, ts)  "prefix" ps "TAG" ts
+#define MESSAGE_EXPECTED_PRINTF_FMT_FUNCTION     "function"
+#define MESSAGE_EXPECTED_PRINTF_FMT_FILENAME     "file"
+#define MESSAGE_EXPECTED_PRINTF_FMT_FILELINE     "42"
+#define MESSAGE_EXPECTED_PRINTF_FMT_S(s)         s
+#define MESSAGE_EXPECTED_PRINTF_FMT_F_UINT(w, v) "%" #w "u"
+#define MESSAGE_EXPECTED_PRINTF_FMT(field) \
+	_PP_CONCAT_2(MESSAGE_EXPECTED_PRINTF_FMT_, field)
 
-#define MESSAGE_EXPECTED_YEAR         "2106"
-#define MESSAGE_EXPECTED_MONTH        "12"
-#define MESSAGE_EXPECTED_DAY          "23"
-#define MESSAGE_EXPECTED_HOUR         "12"
-#define MESSAGE_EXPECTED_MINUTE       "34"
-#define MESSAGE_EXPECTED_SECOND       "56"
-#define MESSAGE_EXPECTED_MILLISECOND  "789"
-#define MESSAGE_EXPECTED_PID          " 9876"
-#define MESSAGE_EXPECTED_TID          " 5432"
-#define MESSAGE_EXPECTED_LEVEL        "I"
-#define MESSAGE_EXPECTED_TAG(ps, ts)  "prefix" ps "TAG" ts
-#define MESSAGE_EXPECTED_FUNCTION     "function"
-#define MESSAGE_EXPECTED_FILENAME     "file"
-#define MESSAGE_EXPECTED_FILELINE     "42"
-#define MESSAGE_EXPECTED_S(s)         s
-#define MESSAGE_EXPECTED_F_UINT(w, v) #v
-#define MESSAGE_EXPECTED(field) \
-	_PP_CONCAT_2(MESSAGE_EXPECTED_, field)
+#define MESSAGE_EXPECTED_PRINTF_VAL_YEAR
+#define MESSAGE_EXPECTED_PRINTF_VAL_MONTH
+#define MESSAGE_EXPECTED_PRINTF_VAL_DAY
+#define MESSAGE_EXPECTED_PRINTF_VAL_HOUR
+#define MESSAGE_EXPECTED_PRINTF_VAL_MINUTE
+#define MESSAGE_EXPECTED_PRINTF_VAL_SECOND
+#define MESSAGE_EXPECTED_PRINTF_VAL_MILLISECOND
+#define MESSAGE_EXPECTED_PRINTF_VAL_PID
+#define MESSAGE_EXPECTED_PRINTF_VAL_TID
+#define MESSAGE_EXPECTED_PRINTF_VAL_LEVEL
+#define MESSAGE_EXPECTED_PRINTF_VAL_TAG(ps, ts)
+#define MESSAGE_EXPECTED_PRINTF_VAL_FUNCTION
+#define MESSAGE_EXPECTED_PRINTF_VAL_FILENAME
+#define MESSAGE_EXPECTED_PRINTF_VAL_FILELINE
+#define MESSAGE_EXPECTED_PRINTF_VAL_S(s)
+#define MESSAGE_EXPECTED_PRINTF_VAL_F_UINT(w, v) , v
+#define MESSAGE_EXPECTED_PRINTF_VAL(field) \
+	_PP_CONCAT_2(MESSAGE_EXPECTED_PRINTF_VAL_, field)
 
-#define EXPECTED_HEADER \
-	_PP_MAP(MESSAGE_EXPECTED, ZF_LOG_MESSAGE_CTX_FORMAT) \
-	_PP_MAP(MESSAGE_EXPECTED, ZF_LOG_MESSAGE_TAG_FORMAT) \
-	_PP_MAP(MESSAGE_EXPECTED, ZF_LOG_MESSAGE_SRC_FORMAT)
+#define MESSAGE_EXPECTED_PRINTF_FMTS \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_FMT, ZF_LOG_MESSAGE_TAG_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
+
+#define MESSAGE_EXPECTED_PRINTF_VALS \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_VAL, ZF_LOG_MESSAGE_TAG_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT)
 
 static const char c_test_fmt[] =
 	"Lorem ipsum dolor sit amet.";
 static const char c_test_mem[] =
 	"Here's to the crazy ones.";
 
-static const char *const c_msg_expected_lines[] = {
-	ASSERT_FITS(EXPECTED_HEADER "Lorem ipsum dolor sit amet.")
-};
-static const char *const c_mem_expected_lines[] = {
-	ASSERT_FITS(EXPECTED_HEADER "Lorem ipsum dolor sit amet."),
-	ASSERT_FITS(EXPECTED_HEADER "48657265277320746f20746865206372  Here's to the cr"),
-	ASSERT_FITS(EXPECTED_HEADER "617a79206f6e65732e00              azy ones.?")
-};
+static const char *c_msg_expected_lines[1];
+static const char *c_mem_expected_lines[3];
 
 #define MAX_LINES 4
 static char g_lines[MAX_LINES][ZF_LOG_BUF_SZ];
@@ -213,6 +228,30 @@ static void test_mem_output()
 	}
 }
 
+static void init_expected_lines()
+{
+	char expected_header[256];
+	char line[512];
+
+	snprintf(expected_header, sizeof(expected_header),
+			MESSAGE_EXPECTED_PRINTF_FMTS
+			MESSAGE_EXPECTED_PRINTF_VALS);
+
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "Lorem ipsum dolor sit amet.");
+	c_msg_expected_lines[0] = strdup(line);
+
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "Lorem ipsum dolor sit amet.");
+	c_mem_expected_lines[0] = strdup(line);
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "48657265277320746f20746865206372  Here's to the cr");
+	c_mem_expected_lines[1] = strdup(line);
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "617a79206f6e65732e00              azy ones.?");
+	c_mem_expected_lines[2] = strdup(line);
+}
+
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
@@ -221,6 +260,8 @@ int main(int argc, char *argv[])
 	g_buffer_cb = mock_buffer_callback;
 	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, mock_output_callback);
 	zf_log_set_tag_prefix("prefix");
+
+	init_expected_lines();
 
 	test_msg_output();
 	test_mem_output();
